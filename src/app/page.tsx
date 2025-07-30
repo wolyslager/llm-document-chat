@@ -63,7 +63,7 @@ export default function HomePage() {
       // Treat fetch abort or generic network failure after our timeout as informational
       if (didTimeout || error.name === 'AbortError' || error.message === 'timeout') {
         setResponse({
-          info: 'The upload is taking longer than expected. Processing will continue in the background – please check back in a few minutes.'
+          info: 'The upload is taking longer than expected. Processing will continue in the background – please check back in a few minutes. Once complete, your document will appear in the Documents tab.'
         });
       } else {
         setResponse({ error: error instanceof Error ? error.message : 'Upload failed' });
