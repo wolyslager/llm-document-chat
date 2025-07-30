@@ -14,9 +14,8 @@ export async function GET() {
       throw new DatabaseError('fetch all documents', error as Error);
     }
     
-    // Return clean summary list without full extracted content
+    // Return documents with full extracted content for UI display
     const documentSummaries = documents.map(doc => {
-      const content: any = doc.extractedContent;
       return {
         id: doc.id,
         fileId: doc.fileId,
@@ -27,12 +26,8 @@ export async function GET() {
         uploadedAt: doc.uploadedAt,
         processingTimeMs: doc.processingTimeMs,
         status: doc.status,
-        // Only include summary data, not full extracted content
-        extractedData: {
-          tablesCount: content?.tables?.length || 0,
-          textLength: content?.rawText?.length || 0,
-          hasContent: !!content
-        },
+        // Include full extracted content for UI display
+        extractedContent: doc.extractedContent,
         vectorStoreId: doc.vectorStoreId,
         vectorStoreFileId: doc.vectorStoreFileId,
         extractedFileId: doc.extractedFileId
