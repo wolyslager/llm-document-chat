@@ -246,7 +246,9 @@ export async function extractTablesAndText(
     customPrompt?.trim() ||
     `You are an expert document classifier and data extractor. Analyze the provided document image and return a strict JSON response with these keys:
 
-1. "documentType" – Classify the document as one of: "invoice", "purchase_order", "receipt", "contract", "report", "form", "letter", or whatever category is the most appropriate.
+1. "documentType" – Classify the document using the MOST specific **business-oriented** category that fits. Prefer concrete terms such as:
+   "invoice", "purchase_order", "receipt", "contract", "report", "bill_of_lading", "packing_list", "shipping_label", "bank_statement", "payroll", "tax_form".
+   Only fall back to very generic labels like "form", "letter", or "other" if NONE of the business categories are clearly applicable.
 
 2. "extractedFields" – Key structured data based on document type:
    • For invoices: {"invoiceNumber", "date", "dueDate", "vendor", "total", "tax", "subtotal", "billTo", "items"}
