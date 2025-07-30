@@ -4,14 +4,40 @@ import { openaiLogger } from './logger';
 
 // Lazy-load OpenAI client to avoid build-time instantiation
 let openai: OpenAI | null = null;
+let redis: Redis | null = null;
 
 function getOpenAIClient(): OpenAI {
   if (!openai) {
-    openai = new OpenAI({
-      apiKey: process.env.OPENAI_API_KEY,
-    });
+    // Skip client creation during build time
+    if (process.env.NODE_ENV === 'production' && !process.env.OPENAI_API_KEY) {
+      throw new Error('OPENAI_API_KEY environment variable is required in production');
+    }
+    
+    const apiKey = process.env.OPENAI_API_KEY;
+    if (!apiKey && process.env.NODE_ENV !== 'development') {
+      throw new Error('OPENAI_API_KEY environment variable is required');
+    }
+    openai = new OpenAI({ apiKey: apiKey || 'sk-dummy-build-key' });
   }
   return openai;
+}
+
+function getRedisClient(): Redis {
+  if (!redis) {
+    // Skip Redis during build if env vars not available
+    if (!process.env.UPSTASH_REDIS_REST_URL || !process.env.UPSTASH_REDIS_REST_TOKEN) {
+      if (process.env.NODE_ENV === 'production') {
+        throw new Error('Redis environment variables are required in production');
+      }
+      // Return a mock Redis client for build time
+      return {} as Redis;
+    }
+    
+    const url = process.env.UPSTASH_REDIS_REST_URL;
+    const token = process.env.UPSTASH_REDIS_REST_TOKEN;
+    redis = Redis.fromEnv();
+  }
+  return redis;
 }
 
 // ---------------------------------------------------------------------------
@@ -27,11 +53,6 @@ type CachedSearchResult = {
   runId: string;
   threadId: string;
 };
-
-// Shared Redis instance (Upstash REST – credentials loaded from env vars)
-const redis = Redis.fromEnv();
-// TTL for Redis-cached results (seconds)
-const REDIS_TTL_SECONDS = 60 * 60; // 1 hour
 
 export interface FileUploadResult {
   fileId: string;
@@ -488,7 +509,7 @@ export async function searchVectorStore(query: string, vectorStoreId?: string) {
   let cachedResult: CachedSearchResult | null = null;
   
   try {
-    cachedResult = await redis.get<CachedSearchResult>(cacheKey);
+    cachedResult = await getRedisClient().get<CachedSearchResult>(cacheKey);
     if (cachedResult) {
       openaiLogger.info('Search result served from cache', {
         query: query.slice(0, 100), // Log first 100 chars of query
@@ -549,7 +570,7 @@ export async function searchVectorStore(query: string, vectorStoreId?: string) {
 
     // Cache the result (non-blocking - cache write failures shouldn't affect response)
     try {
-      await redis.set(cacheKey, result, { ex: REDIS_TTL_SECONDS });
+      await getRedisClient().set(cacheKey, result, { ex: 60 * 60 }); // TTL in seconds
       openaiLogger.debug('Search result cached successfully', { cacheKey: cacheKey.slice(0, 50) });
     } catch (err) {
       // Cache write failures are non-critical - log and continue
