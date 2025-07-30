@@ -20,20 +20,27 @@ const getLogLevel = (): string => {
 // Configure pino logger
 const logger = pino({
   level: getLogLevel(),
-  transport: process.env.NODE_ENV === 'development' ? {
-    target: 'pino-pretty',
-    options: {
-      colorize: true,
-      translateTime: 'SYS:yyyy-mm-dd HH:MM:ss',
-      ignore: 'pid,hostname',
-    }
-  } : undefined,
+  // Simple configuration without transport to avoid worker process issues
   formatters: {
     level: (label) => {
       return { level: label };
+    },
+    log: (object) => {
+      // Add timestamp and make logs more readable in development
+      if (process.env.NODE_ENV === 'development') {
+        const { level, time, msg, module, ...rest } = object;
+        return {
+          time: new Date(time as string | number).toLocaleTimeString(),
+          level,
+          module,
+          msg,
+          ...rest
+        };
+      }
+      return object;
     }
   },
-  timestamp: pino.stdTimeFunctions.isoTime,
+  timestamp: pino.stdTimeFunctions.isoTime
 });
 
 // Helper functions for common logging patterns with emojis

@@ -222,6 +222,55 @@ export default function DocumentsTab() {
                   <div className="mt-6">
                     <h4 className="font-medium text-black mb-3">Extracted Content</h4>
                     
+                    {/* Document Classification */}
+                    {doc.extractedContent.documentType && (
+                      <div>
+                        <h5 className="text-sm font-medium text-gray-700 mb-2">Document Classification</h5>
+                        <div className="bg-white border rounded p-3">
+                          <div className="flex items-center space-x-4 text-sm">
+                            <div>
+                              <span className="font-medium text-gray-700">Type:</span>
+                              <span className="ml-2 px-2 py-1 bg-blue-100 text-blue-800 rounded text-xs font-medium">
+                                {doc.extractedContent.documentType.replace('_', ' ').toUpperCase()}
+                              </span>
+                            </div>
+                            {doc.extractedContent.confidence && (
+                              <div>
+                                <span className="font-medium text-gray-700">Confidence:</span>
+                                <span className="ml-2 text-gray-600">
+                                  {Math.round(doc.extractedContent.confidence * 100)}%
+                                </span>
+                              </div>
+                            )}
+                          </div>
+                        </div>
+                      </div>
+                    )}
+
+                    {/* Extracted Fields */}
+                    {doc.extractedContent.extractedFields && Object.keys(doc.extractedContent.extractedFields).length > 0 && (
+                      <div>
+                        <h5 className="text-sm font-medium text-gray-700 mb-2">Key Extracted Fields</h5>
+                        <div className="bg-white border rounded p-3">
+                          <div className="grid grid-cols-1 md:grid-cols-2 gap-2 text-sm">
+                            {Object.entries(doc.extractedContent.extractedFields).map(([key, value]) => {
+                              if (value === null || value === undefined || value === '') return null;
+                              return (
+                                <div key={key} className="flex">
+                                  <span className="font-medium text-gray-700 capitalize min-w-0 flex-shrink-0">
+                                    {key.replace(/([A-Z])/g, ' $1').toLowerCase()}:
+                                  </span>
+                                  <span className="ml-2 text-gray-800 break-words">
+                                    {typeof value === 'object' ? JSON.stringify(value) : String(value)}
+                                  </span>
+                                </div>
+                              );
+                            })}
+                          </div>
+                        </div>
+                      </div>
+                    )}
+
                     {/* Tables */}
                     {doc.extractedContent.tables && doc.extractedContent.tables.length > 0 && (
                       <div className="mb-4">

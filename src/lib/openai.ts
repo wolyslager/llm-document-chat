@@ -226,9 +226,24 @@ export async function extractTablesAndText(
    • For contracts: {"parties", "date", "title", "value", "terms", "duration"}
    • For other types: extract the most relevant fields found
 
-3. "tables" – Array capturing table data as objects {"row","column","value"} (excluding headers)
+3. "tables" – an array that captures EVERY data cell from ALL tables in the document **excluding header rows**. Represent each cell as an object {"row","column","value"}.
+   • "row"  – the EXACT text of the FIRST cell in that row (the row header/value).
+   • "column" – the EXACT text of the column header (top-most header cell) for that column.
+   • "value" – the cell text itself.
+   Do NOT use numeric indices or positional terms. Do NOT include header rows themselves (they become the column names).
 
-4. "rawText" – Plain text of all non-tabular content
+   Example table snippet (header + 1 row):
+   Pieces | Pallets | Description
+   72     | 9       | SAP Forms
+
+   Should yield in "tables":
+   [
+     {"row":"72","column":"Pieces","value":"72"},
+     {"row":"72","column":"Pallets","value":"9"},
+     {"row":"72","column":"Description","value":"SAP Forms"}
+   ]
+
+4. "rawText" – plain text of all NON-tabular content in reading order.
 
 5. "confidence" – Your confidence in the classification (0-1)
 
