@@ -2,10 +2,17 @@ import OpenAI from 'openai';
 import { Redis } from '@upstash/redis';
 import { openaiLogger } from './logger';
 
-// Use a dummy key during build to avoid errors if OPENAI_API_KEY is not set
-const openai = new OpenAI({
-  apiKey: process.env.OPENAI_API_KEY || 'sk-dummy-key-for-build',
-});
+// Lazy-load OpenAI client to avoid build-time instantiation
+let openai: OpenAI | null = null;
+
+function getOpenAIClient(): OpenAI {
+  if (!openai) {
+    openai = new OpenAI({
+      apiKey: process.env.OPENAI_API_KEY,
+    });
+  }
+  return openai;
+}
 
 // ---------------------------------------------------------------------------
 // 🧠 Simple in-memory cache for vector-store searches
@@ -36,7 +43,7 @@ export interface FileUploadResult {
 
 export async function uploadFile(file: File): Promise<FileUploadResult> {
   try {
-    const uploaded = await openai.files.create({ file, purpose: 'assistants' });
+    const uploaded = await getOpenAIClient().files.create({ file, purpose: 'assistants' });
     
     openaiLogger.info('File uploaded to OpenAI', {
       fileId: uploaded.id,
@@ -272,7 +279,7 @@ Return ONLY a valid JSON object. Extract actual values when present, use null fo
     const pageInfo = imageBuffers.length > 1 ? ` (Page ${i + 1}/${imageBuffers.length})` : '';
     
     try {
-      const response = await openai.chat.completions.create({
+      const response = await getOpenAIClient().chat.completions.create({
         model: "gpt-4o",
         messages: [
           {
@@ -370,7 +377,7 @@ export async function createOrGetVectorStore(name: string = 'document-store') {
   
   if (vectorStoreId) {
     try {
-      const vectorStore = await openai.vectorStores.retrieve(vectorStoreId);
+      const vectorStore = await getOpenAIClient().vectorStores.retrieve(vectorStoreId);
       openaiLogger.info('Using existing vector store', { 
         vectorStoreId: vectorStore.id,
         fileCount: vectorStore.file_counts?.total || 0
@@ -384,7 +391,7 @@ export async function createOrGetVectorStore(name: string = 'document-store') {
   }
   
   try {
-    const vectorStore = await openai.vectorStores.create({
+    const vectorStore = await getOpenAIClient().vectorStores.create({
       name: name,
       expires_after: {
         anchor: "last_active_at",
@@ -413,7 +420,7 @@ export async function addExtractedContentToVectorStore(
   try {
     // Get or create vector store
     const vectorStore = vectorStoreId 
-      ? await openai.vectorStores.retrieve(vectorStoreId)
+      ? await getOpenAIClient().vectorStores.retrieve(vectorStoreId)
       : await createOrGetVectorStore();
     
     // Format extracted content into searchable text
@@ -432,13 +439,13 @@ export async function addExtractedContentToVectorStore(
     }
     
     // Create a new file with the extracted content
-    const extractedFile = await openai.files.create({
+    const extractedFile = await getOpenAIClient().files.create({
       file: new File([textContent], `extracted_${originalFilename}.txt`, { type: 'text/plain' }),
       purpose: 'assistants'
     });
     
     // Add the extracted content file to vector store
-    const vectorStoreFile = await openai.vectorStores.files.create(
+    const vectorStoreFile = await getOpenAIClient().vectorStores.files.create(
       vectorStore.id,
       { file_id: extractedFile.id }
     );
@@ -501,7 +508,7 @@ export async function searchVectorStore(query: string, vectorStoreId?: string) {
   
   try {
     // Create assistant with vector store
-    const assistant = await openai.beta.assistants.create({
+    const assistant = await getOpenAIClient().beta.assistants.create({
       name: "Document Search Assistant",
       instructions: "You are a helpful assistant that searches through uploaded documents to answer questions.",
       model: "gpt-4o",
@@ -514,7 +521,7 @@ export async function searchVectorStore(query: string, vectorStoreId?: string) {
     });
     
     // Create thread and run
-    const thread = await openai.beta.threads.create({
+    const thread = await getOpenAIClient().beta.threads.create({
       messages: [
         {
           role: "user",
@@ -523,16 +530,16 @@ export async function searchVectorStore(query: string, vectorStoreId?: string) {
       ]
     });
     
-    const run = await openai.beta.threads.runs.createAndPoll(thread.id, {
+    const run = await getOpenAIClient().beta.threads.runs.createAndPoll(thread.id, {
       assistant_id: assistant.id
     });
     
     // Get response
-    const messages = await openai.beta.threads.messages.list(thread.id);
+    const messages = await getOpenAIClient().beta.threads.messages.list(thread.id);
     const response = messages.data[0].content[0];
     
     // Cleanup
-    await openai.beta.assistants.delete(assistant.id);
+    await getOpenAIClient().beta.assistants.delete(assistant.id);
     
     const result: CachedSearchResult = {
       response: response.type === 'text' ? response.text.value : 'No text response',
@@ -579,29 +586,29 @@ export async function searchVectorStore(query: string, vectorStoreId?: string) {
 // ---------------------------------------------------------------------------
 
 export const listVectorStores = async () => {
-  return openai.vectorStores.list();
+  return getOpenAIClient().vectorStores.list();
 };
 
 export const createVectorStore = async (options: Record<string, any>) => {
-  return openai.vectorStores.create(options);
+  return getOpenAIClient().vectorStores.create(options);
 };
 
 export const getVectorStore = async (id: string) => {
-  return openai.vectorStores.retrieve(id);
+  return getOpenAIClient().vectorStores.retrieve(id);
 };
 
 export const deleteVectorStore = async (id: string) => {
-  return openai.vectorStores.delete(id);
+  return getOpenAIClient().vectorStores.delete(id);
 };
 
 export const listVectorStoreFiles = async (vectorStoreId: string) => {
-  return openai.vectorStores.files.list(vectorStoreId);
+  return getOpenAIClient().vectorStores.files.list(vectorStoreId);
 };
 
 export const addFileToVectorStore = async (vectorStoreId: string, fileId: string) => {
-  return openai.vectorStores.files.create(vectorStoreId, { file_id: fileId });
+  return getOpenAIClient().vectorStores.files.create(vectorStoreId, { file_id: fileId });
 };
 
 export const removeFileFromVectorStore = async (vectorStoreId: string, fileId: string) => {
-  return openai.vectorStores.files.delete(vectorStoreId, fileId as any);
+  return getOpenAIClient().vectorStores.files.delete(vectorStoreId, fileId as any);
 };
