@@ -46,7 +46,8 @@ describe('Documents API', () => {
       // Mock the database response
       ;(getAllDocuments as jest.Mock).mockResolvedValue(mockDocuments)
 
-      const response = await GET()
+      const mockRequest = { headers: { get: () => null }, method: 'GET' } as any
+      const response = await GET(mockRequest)
       const data = await response.json()
 
       expect(response.status).toBe(200)
@@ -63,7 +64,8 @@ describe('Documents API', () => {
     it('should handle database errors gracefully', async () => {
       ;(getAllDocuments as jest.Mock).mockRejectedValue(new Error('Database error'))
 
-      const response = await GET()
+      const mockRequest = { headers: { get: () => null }, method: 'GET' } as any
+      const response = await GET(mockRequest)
       const data = await response.json()
 
       expect(response.status).toBe(500)
@@ -75,7 +77,8 @@ describe('Documents API', () => {
     it('should return empty list when no documents exist', async () => {
       ;(getAllDocuments as jest.Mock).mockResolvedValue([])
 
-      const response = await GET()
+      const mockRequest = { headers: { get: () => null }, method: 'GET' } as any
+      const response = await GET(mockRequest)
       const data = await response.json()
 
       expect(response.status).toBe(200)

@@ -99,7 +99,8 @@ export function handleZodError(error: ZodError): ValidationError {
 export function createErrorResponse(
   error: Error,
   method: string,
-  path: string
+  path: string,
+  request?: Request
 ): NextResponse<ErrorPayload> {
   let appError: AppError;
 
@@ -134,7 +135,15 @@ export function createErrorResponse(
     }
   };
 
-  return NextResponse.json(payload, { status: appError.statusCode });
+  const response = NextResponse.json(payload, { status: appError.statusCode });
+  
+  // Add CORS headers if request is provided
+  if (request) {
+    const { withCors } = require('./cors');
+    return withCors(response, request);
+  }
+  
+  return response;
 }
 
 // Helper function to safely extract error message

@@ -4,6 +4,7 @@ import { saveDocument, findDocumentByName } from '@/lib/database';
 import { randomUUID } from 'crypto';
 import { apiLogger as logger } from '@/lib/logger';
 import { createErrorResponse } from '@/lib/errors';
+import { handleCors, withCors } from '@/lib/cors';
 
 const MAX_FILE_SIZE = 10 * 1024 * 1024; // 10MB
 const ALLOWED_TYPES = [
@@ -16,7 +17,14 @@ const ALLOWED_TYPES = [
   'image/jpg'
 ];
 
+export async function OPTIONS(request: NextRequest) {
+  return handleCors(request) || new NextResponse(null, { status: 200 });
+}
+
 export async function POST(request: NextRequest) {
+  // Handle CORS preflight
+  const corsResponse = handleCors(request);
+  if (corsResponse) return corsResponse;
   try {
     const formData = await request.formData();
     const file = formData.get('file') as File;
@@ -26,10 +34,10 @@ export async function POST(request: NextRequest) {
 
     if (!file) {
       logger.warn('❌ No file provided');
-      return NextResponse.json(
+      return withCors(NextResponse.json(
         { error: 'No file provided' },
         { status: 400 }
-      );
+      ), request);
     }
 
     logger.info(`📄 File received: ${file.name} (${file.type}, ${(file.size / 1024 / 1024).toFixed(2)}MB)`);
@@ -37,19 +45,19 @@ export async function POST(request: NextRequest) {
     // Validate file size
     if (file.size > MAX_FILE_SIZE) {
       logger.warn('❌ File too large');
-      return NextResponse.json(
+      return withCors(NextResponse.json(
         { error: 'File size exceeds 10MB limit' },
         { status: 400 }
-      );
+      ), request);
     }
 
     // Validate file type
     if (!ALLOWED_TYPES.includes(file.type)) {
       logger.warn(`❌ File type not allowed: ${file.type}`);
-      return NextResponse.json(
+      return withCors(NextResponse.json(
         { error: 'File type not allowed' },
         { status: 400 }
-      );
+      ), request);
     }
 
     logger.info('✅ File validation passed');
@@ -58,7 +66,7 @@ export async function POST(request: NextRequest) {
     const existingDocument = await findDocumentByName(file.name);
     if (existingDocument) {
       logger.warn(`⚠️ Duplicate file detected: ${file.name}`);
-      return NextResponse.json({
+      return withCors(NextResponse.json({
         message: 'File already exists',
         originalName: file.name,
         size: file.size,
@@ -70,7 +78,7 @@ export async function POST(request: NextRequest) {
           processingTimeMs: existingDocument.processingTimeMs
         },
         duplicate: true
-      });
+      }), request);
     }
 
     logger.info('✅ No duplicate found, proceeding with processing');
@@ -121,15 +129,15 @@ export async function POST(request: NextRequest) {
     }
 
     if (uploadError) {
-      return NextResponse.json(
+      return withCors(NextResponse.json(
         { error: uploadError },
         { status: 500 }
-      );
+      ), request);
     }
 
     logger.processComplete('file upload process');
     
-    return NextResponse.json({
+    return withCors(NextResponse.json({
       message: 'File uploaded successfully',
       originalName: file.name,
       size: file.size,
@@ -142,9 +150,9 @@ export async function POST(request: NextRequest) {
       extraction: extraction,
       documentId: savedDocument?.id,
       vectorStore: vectorStoreResult
-    });
+    }), request);
 
   } catch (error) {
-    return createErrorResponse(error as Error, 'POST', '/api/upload');
+    return createErrorResponse(error as Error, 'POST', '/api/upload', request);
   }
 }

@@ -3,15 +3,24 @@ import { prisma } from '@/lib/database';
 import { apiLogger } from '@/lib/logger';
 import { createErrorResponse, NotFoundError, DatabaseError } from '@/lib/errors';
 import { validateDocumentId } from '@/lib/validation';
+import { handleCors, withCors } from '@/lib/cors';
 import OpenAI from 'openai';
 
 // Create an OpenAI SDK instance (we don't have access to the shared one here)
 const openai = new OpenAI({ apiKey: process.env.OPENAI_API_KEY });
 
+export async function OPTIONS(request: NextRequest) {
+  return handleCors(request) || new NextResponse(null, { status: 200 });
+}
+
 export async function GET(
   request: NextRequest,
   { params }: { params: Promise<{ id: string }> }
 ) {
+  // Handle CORS preflight
+  const corsResponse = handleCors(request);
+  if (corsResponse) return corsResponse;
+  
   try {
     const { id } = await params;
     
@@ -38,18 +47,22 @@ export async function GET(
       originalName: document.originalName
     });
     
-    return NextResponse.json({
+    return withCors(NextResponse.json({
       success: true,
       document
-    });
+    }), request);
     
   } catch (error) {
     const { id } = await params;
-    return createErrorResponse(error as Error, 'GET', `/api/documents/${id}`);
+    return createErrorResponse(error as Error, 'GET', `/api/documents/${id}`, request);
   }
 }
 
-export async function DELETE(_req: Request, { params }: { params: { id: string } }) {
+export async function DELETE(request: NextRequest, { params }: { params: { id: string } }) {
+  // Handle CORS preflight
+  const corsResponse = handleCors(request);
+  if (corsResponse) return corsResponse;
+  
   try {
     const { id } = params;
     
@@ -113,9 +126,9 @@ export async function DELETE(_req: Request, { params }: { params: { id: string }
       hadExtractedFile: !!doc.extractedFileId
     });
 
-    return NextResponse.json({ success: true });
+    return withCors(NextResponse.json({ success: true }), request);
   } catch (error) {
     const { id } = params;
-    return createErrorResponse(error as Error, 'DELETE', `/api/documents/${id}`);
+    return createErrorResponse(error as Error, 'DELETE', `/api/documents/${id}`, request);
   }
 }

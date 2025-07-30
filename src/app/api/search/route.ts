@@ -3,8 +3,17 @@ import { searchVectorStore } from '@/lib/openai';
 import { apiLogger } from '@/lib/logger';
 import { createErrorResponse, ExternalServiceError } from '@/lib/errors';
 import { validateJson, validateSearchRequest } from '@/lib/validation';
+import { handleCors, withCors } from '@/lib/cors';
+
+export async function OPTIONS(request: NextRequest) {
+  return handleCors(request) || new NextResponse(null, { status: 200 });
+}
 
 export async function POST(request: NextRequest) {
+  // Handle CORS preflight
+  const corsResponse = handleCors(request);
+  if (corsResponse) return corsResponse;
+  
   try {
     // Parse and validate request
     const body = await validateJson(request);
@@ -35,7 +44,7 @@ export async function POST(request: NextRequest) {
       runId: searchResult.runId
     });
 
-    return NextResponse.json({
+    return withCors(NextResponse.json({
       success: true,
       query: trimmedQuery,
       response: cleanedResponse,
@@ -44,9 +53,9 @@ export async function POST(request: NextRequest) {
         threadId: searchResult.threadId,
         searchedAt: new Date().toISOString()
       }
-    });
+    }), request);
 
   } catch (error) {
-    return createErrorResponse(error as Error, 'POST', '/api/search');
+    return createErrorResponse(error as Error, 'POST', '/api/search', request);
   }
 }
