@@ -118,6 +118,22 @@ node test-deployment.js https://your-app-name.railway.app
 - Check CORS settings if needed
 - Verify Railway app is running
 
+### API-only build (skip front-end)
+
+If you only need the API routes in Railway (and serve the UI from Vercel):
+
+1. In **Service → Settings → Build Command** set:
+   ```bash
+   npm run build:api
+   ```
+2. In **Service → Settings → Start Command** set:
+   ```bash
+   npm run dev -- -p $PORT
+   ```
+   This starts Next.js in dev/SSR mode so pages are compiled on-the-fly.
+
+This avoids all Tailwind/PostCSS compilation during the Docker build.
+
 ## Monitoring
 
 - **Railway Logs**: View real-time application logs

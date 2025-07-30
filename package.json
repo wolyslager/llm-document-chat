@@ -6,6 +6,7 @@
     "dev": "next dev",
     "build": "next build",
     "build:prod": "npx prisma generate && next build",
+    "build:api": "npx prisma generate",
     "start": "next start",
     "lint": "next lint",
     "test": "jest",
