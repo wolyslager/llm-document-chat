@@ -65,17 +65,28 @@ export const createLogger = (module: string) => {
 
     // Error level - for actual errors with context
     error: (message: string, error?: Error | unknown, data?: object) => {
+      // Base error information (message, stack, name)
+      const baseErrorInfo = error instanceof Error ? {
+        message: error.message,
+        stack: error.stack,
+        name: error.name
+      } : undefined;
+
+      // Extract useful properties from OpenAI errors (or other API style errors)
+      const anyErr = error as any;
+      const openaiExtra = anyErr && (anyErr.status || anyErr.code || anyErr.error) ? {
+        status: anyErr.status,
+        code: anyErr.code,
+        // If the error has a nested `error` object (OpenAI SDK) include that as well
+        openaiError: anyErr.error
+      } : {};
+
       const errorData = {
         ...data,
-        ...(error instanceof Error ? {
-          error: {
-            message: error.message,
-            stack: error.stack,
-            name: error.name
-          }
-        } : error ? { error } : {})
+        ...(baseErrorInfo ? { error: baseErrorInfo } : {}),
+        ...openaiExtra
       };
-      
+
       childLogger.error(errorData, message);
     },
 
