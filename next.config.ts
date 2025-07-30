@@ -14,15 +14,18 @@ const nextConfig: NextConfig = {
   },
   // Skip build-time optimization that might execute API routes
   serverExternalPackages: ['@upstash/redis'],
-  // Forward client-side requests that start with /api/ to the standalone back-end
+  // Only add proxy rewrites when building the **frontend** on Vercel.
+  // Railway (backend) builds don't have the VERCEL env var, so they skip this block and serve API routes directly.
   async rewrites() {
-    return [
-      {
-        source: '/api/:path*',
-        // Use BACKEND_URL at build time; fallback to localhost for local dev
-        destination: `${process.env.BACKEND_URL || 'http://localhost:3000'}/api/:path*`,
-      },
-    ];
+    if (process.env.VERCEL && process.env.BACKEND_URL) {
+      return [
+        {
+          source: '/api/:path*',
+          destination: `${process.env.BACKEND_URL}/api/:path*`,
+        },
+      ];
+    }
+    return [];
   },
 };
 
