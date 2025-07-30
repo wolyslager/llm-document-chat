@@ -3,6 +3,24 @@ FROM node:18-alpine
 # Install Poppler utilities (including pdftocairo)
 RUN apk add --no-cache poppler-utils
 
+# Declare build arguments for environment variables needed at build time
+ARG OPENAI_API_KEY
+ARG UPSTASH_REDIS_REST_URL
+ARG UPSTASH_REDIS_REST_TOKEN
+ARG DATABASE_URL
+ARG LOG_LEVEL
+ARG NODE_ENV
+ARG DEBUG
+
+# Set environment variables from build arguments
+ENV OPENAI_API_KEY=$OPENAI_API_KEY
+ENV UPSTASH_REDIS_REST_URL=$UPSTASH_REDIS_REST_URL
+ENV UPSTASH_REDIS_REST_TOKEN=$UPSTASH_REDIS_REST_TOKEN
+ENV DATABASE_URL=$DATABASE_URL
+ENV LOG_LEVEL=$LOG_LEVEL
+ENV NODE_ENV=$NODE_ENV
+ENV DEBUG=$DEBUG
+
 WORKDIR /app
 
 # Copy package files
