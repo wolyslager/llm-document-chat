@@ -30,22 +30,41 @@ export default function HomePage() {
 
     setUploading(true);
     setResponse(null);
-    
+
     const formData = new FormData();
     formData.append('file', file);
+
+    // Abort the request if it takes longer than 60 seconds so we can show a nicer message
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), 60_000);
 
     try {
       const backendUrl = process.env.NEXT_PUBLIC_BACKEND_URL || '';
       const res = await fetch(`${backendUrl}/api/upload`, {
         method: 'POST',
         body: formData,
+        signal: controller.signal,
       });
+
+      // If the server returns a 504 Gateway Timeout (or similar), show the same friendly message
+      if (!res.ok) {
+        if (res.status === 504 || res.status === 502) {
+          throw new Error('timeout');
+        }
+      }
 
       const result = await res.json();
       setResponse(result);
-    } catch (error) {
-      setResponse({ error: error instanceof Error ? error.message : 'Upload failed' });
+    } catch (error: any) {
+      if (error.name === 'AbortError' || error.message === 'timeout') {
+        setResponse({
+          info: 'The upload is taking longer than expected. Processing will continue in the background – please check back in a few minutes.'
+        });
+      } else {
+        setResponse({ error: error instanceof Error ? error.message : 'Upload failed' });
+      }
     } finally {
+      clearTimeout(timeoutId);
       setUploading(false);
     }
   };
@@ -237,11 +256,16 @@ export default function HomePage() {
         {response && !uploading && (
           <div className="mt-6 bg-white rounded-lg shadow-md p-6">
             <h2 className="text-xl font-semibold text-gray-900 mb-4">
-              {response.duplicate ? 'Duplicate File Detected' : 
+              {response.duplicate ? 'Duplicate File Detected' :
+               response.info ? 'Upload In Progress' :
                response.error ? 'Upload Error' : 'Upload Complete'}
             </h2>
-            
-            {response.error ? (
+
+            {response.info ? (
+              <div className="bg-blue-50 border border-blue-200 text-blue-700 px-4 py-3 rounded">
+                {response.info}
+              </div>
+            ) : response.error ? (
               <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded">
                 {response.error}
               </div>
@@ -249,7 +273,7 @@ export default function HomePage() {
               <div className="bg-yellow-50 border border-yellow-200 text-yellow-800 px-4 py-3 rounded">
                 <div className="font-medium">File &quot;{response.originalName}&quot; already exists</div>
                 <div className="text-sm mt-1">
-                  Previously uploaded: {response.existingDocument ? 
+                  Previously uploaded: {response.existingDocument ?
                     new Date(response.existingDocument.uploadedAt).toLocaleString() : 'Unknown'}
                 </div>
               </div>
