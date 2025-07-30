@@ -58,13 +58,13 @@ export async function GET(
   }
 }
 
-export async function DELETE(request: NextRequest, { params }: { params: { id: string } }) {
+export async function DELETE(request: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   // Handle CORS preflight
   const corsResponse = handleCors(request);
   if (corsResponse) return corsResponse;
   
   try {
-    const { id } = params;
+    const { id } = await params;
     
     // Validate document ID
     validateDocumentId(id);
@@ -128,7 +128,7 @@ export async function DELETE(request: NextRequest, { params }: { params: { id: s
 
     return withCors(NextResponse.json({ success: true }), request);
   } catch (error) {
-    const { id } = params;
+    const { id } = await params;
     return createErrorResponse(error as Error, 'DELETE', `/api/documents/${id}`, request);
   }
 }
