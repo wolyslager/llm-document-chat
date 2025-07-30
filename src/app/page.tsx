@@ -36,7 +36,11 @@ export default function HomePage() {
 
     // Abort the request if it takes longer than 60 seconds so we can show a nicer message
     const controller = new AbortController();
-    const timeoutId = setTimeout(() => controller.abort(), 60_000);
+    let didTimeout = false;
+    const timeoutId = setTimeout(() => {
+      didTimeout = true;
+      controller.abort();
+    }, 60_000);
 
     try {
       const backendUrl = process.env.NEXT_PUBLIC_BACKEND_URL || '';
@@ -56,7 +60,8 @@ export default function HomePage() {
       const result = await res.json();
       setResponse(result);
     } catch (error: any) {
-      if (error.name === 'AbortError' || error.message === 'timeout') {
+      // Treat fetch abort or generic network failure after our timeout as informational
+      if (didTimeout || error.name === 'AbortError' || error.message === 'timeout') {
         setResponse({
           info: 'The upload is taking longer than expected. Processing will continue in the background – please check back in a few minutes.'
         });
