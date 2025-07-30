@@ -2,8 +2,9 @@ import OpenAI from 'openai';
 import { Redis } from '@upstash/redis';
 import { openaiLogger } from './logger';
 
+// Use a dummy key during build to avoid errors if OPENAI_API_KEY is not set
 const openai = new OpenAI({
-  apiKey: process.env.OPENAI_API_KEY,
+  apiKey: process.env.OPENAI_API_KEY || 'sk-dummy-key-for-build',
 });
 
 // ---------------------------------------------------------------------------
