@@ -12,9 +12,7 @@ const nextConfig: NextConfig = {
     ignoreBuildErrors: true,
   },
   // Skip build-time optimization that might execute API routes
-  experimental: {
-    serverComponentsExternalPackages: ['@upstash/redis'],
-  },
+  serverExternalPackages: ['@upstash/redis'],
 };
 
 export default nextConfig;

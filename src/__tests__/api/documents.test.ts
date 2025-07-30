@@ -54,12 +54,10 @@ describe('Documents API', () => {
       expect(data.count).toBe(1)
       expect(data.documents).toHaveLength(1)
       
-      // Check that full extracted content is not included in list
-      expect(data.documents[0]).not.toHaveProperty('extractedContent')
-      expect(data.documents[0]).toHaveProperty('extractedData')
-      expect(data.documents[0].extractedData.tablesCount).toBe(1)
-      expect(data.documents[0].extractedData.textLength).toBe(12)
-      expect(data.documents[0].extractedData.hasContent).toBe(true)
+      // Check that full extracted content is included in the response
+      expect(data.documents[0]).toHaveProperty('extractedContent')
+      expect(data.documents[0].extractedContent.tables).toHaveLength(1)
+      expect(data.documents[0].extractedContent.rawText).toBe('test content')
     })
 
     it('should handle database errors gracefully', async () => {
