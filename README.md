@@ -1,36 +1,103 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# LLM Document Chat
+
+A Next.js application for document processing, analysis, and chat using OpenAI's Vision API and vector stores. Upload documents (PDFs, images, text files), extract structured data, and perform semantic search across your document collection.
+
+## Features
+
+- **Document Upload & Processing**: Support for PDFs, images, Word docs, and text files
+- **AI-Powered Extraction**: Uses OpenAI Vision API to extract tables and text from documents
+- **Vector Search**: Semantic search across document content using OpenAI vector stores
+- **Real-time Progress**: SSE-based progress tracking for document processing
+- **Structured Logging**: Comprehensive logging with pino for debugging and monitoring
+- **Type Safety**: Full TypeScript implementation with Zod validation
+- **Testing**: Jest test suite with API route coverage
 
 ## Getting Started
 
-First, run the development server:
+### Prerequisites
 
+- Node.js 18+ and npm
+- OpenAI API key
+- (Optional) Poppler tools for PDF processing (`pdftocairo`)
+- (Optional) Redis/Upstash for caching
+
+### Setup
+
+1. Clone the repository:
 ```bash
-npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
+git clone https://github.com/wolyslager/llm-document-chat.git
+cd llm-document-chat
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+2. Install dependencies:
+```bash
+npm install
+```
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+3. Set up environment variables:
+```bash
+cp env.example .env.local
+# Edit .env.local with your OpenAI API key and other settings
+```
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+4. Set up the database:
+```bash
+npx prisma migrate dev --name init
+```
 
-## Learn More
+5. Create a vector store:
+```bash
+node setup-vector-store.js
+```
 
-To learn more about Next.js, take a look at the following resources:
+6. Run the development server:
+```bash
+npm run dev
+```
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+Open [http://localhost:3000](http://localhost:3000) with your browser to see the application.
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+## Project Structure
 
-## Deploy on Vercel
+- `src/app/api/` - Next.js API routes for document upload, search, and management
+- `src/lib/` - Core utilities (OpenAI, database, logging, validation)
+- `src/components/` - React components for the UI
+- `scripts/` - Utility scripts for cleanup and setup
+- `prisma/` - Database schema and migrations
+- `src/__tests__/` - Jest test suite
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
+## API Routes
 
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+- `POST /api/upload` - Upload and process documents
+- `POST /api/search` - Search across document content
+- `GET /api/documents` - List processed documents
+- `GET /api/documents/[id]` - Get specific document details
+- `DELETE /api/documents/[id]` - Delete a document
+- `GET /api/vector-stores` - List vector stores
+- `POST /api/vector-stores` - Create new vector store
+
+## Scripts
+
+- `npm run dev` - Start development server
+- `npm run build` - Build for production
+- `npm run test` - Run test suite
+- `npm run lint` - Run ESLint
+- `npm run type-check` - Run TypeScript compiler
+- `./scripts/cleanup-all.js` - Clean database and vector stores
+- `./scripts/cleanup-database.js` - Clean database only
+- `./scripts/cleanup-vector-store.js` - Clean vector store only
+
+## Technologies
+
+- **Framework**: Next.js 14 with App Router
+- **Database**: SQLite with Prisma ORM
+- **AI/ML**: OpenAI GPT-4 Vision API, Vector Stores, Assistants API
+- **Validation**: Zod schemas
+- **Logging**: Pino structured logging
+- **Testing**: Jest with API route testing
+- **Styling**: Tailwind CSS
+- **TypeScript**: Full type safety throughout
+
+## License
+
+MIT
