@@ -1,0 +1,36 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = env("DATABASE_URL")
+}
+
+model Document {
+  id               String   @id @default(cuid())
+  fileId           String   @unique // OpenAI file ID
+  filename         String
+  originalName     String
+  fileSize         Int
+  fileType         String
+  uploadedAt       DateTime @default(now())
+  
+  // Extracted content (stored as JSON)
+  extractedContent Json?    // Full vision API response
+  
+  // Vector store information
+  vectorStoreId    String?  // OpenAI vector store ID
+  vectorStoreFileId String? // OpenAI vector store file ID
+  extractedFileId  String?  // OpenAI file ID for extracted content
+  
+  // Processing metadata
+  processingTimeMs Int?     // Time taken to process
+  status          String   @default("success") // "success" | "failed" | "pending"
+  errorMessage    String?  // If processing failed
+  
+  @@map("documents")
+}

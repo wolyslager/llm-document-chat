@@ -1,103 +1,291 @@
-import Image from "next/image";
+'use client';
 
-export default function Home() {
-  return (
-    <div className="font-sans grid grid-rows-[20px_1fr_20px] items-center justify-items-center min-h-screen p-8 pb-20 gap-16 sm:p-20">
-      <main className="flex flex-col gap-[32px] row-start-2 items-center sm:items-start">
-        <Image
-          className="dark:invert"
-          src="/next.svg"
-          alt="Next.js logo"
-          width={180}
-          height={38}
-          priority
-        />
-        <ol className="font-mono list-inside list-decimal text-sm/6 text-center sm:text-left">
-          <li className="mb-2 tracking-[-.01em]">
-            Get started by editing{" "}
-            <code className="bg-black/[.05] dark:bg-white/[.06] font-mono font-semibold px-1 py-0.5 rounded">
-              src/app/page.tsx
-            </code>
-            .
-          </li>
-          <li className="tracking-[-.01em]">
-            Save and see your changes instantly.
-          </li>
-        </ol>
+import { useState } from 'react';
+import TypingText from '@/components/TypingText';
+import Sidebar from '@/components/Sidebar';
+import DocumentsTab from '@/components/DocumentsTab';
 
-        <div className="flex gap-4 items-center flex-col sm:flex-row">
-          <a
-            className="rounded-full border border-solid border-transparent transition-colors flex items-center justify-center bg-foreground text-background gap-2 hover:bg-[#383838] dark:hover:bg-[#ccc] font-medium text-sm sm:text-base h-10 sm:h-12 px-4 sm:px-5 sm:w-auto"
-            href="https://vercel.com/new?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            <Image
-              className="dark:invert"
-              src="/vercel.svg"
-              alt="Vercel logomark"
-              width={20}
-              height={20}
-            />
-            Deploy now
-          </a>
-          <a
-            className="rounded-full border border-solid border-black/[.08] dark:border-white/[.145] transition-colors flex items-center justify-center hover:bg-[#f2f2f2] dark:hover:bg-[#1a1a1a] hover:border-transparent font-medium text-sm sm:text-base h-10 sm:h-12 px-4 sm:px-5 w-full sm:w-auto md:w-[158px]"
-            href="https://nextjs.org/docs?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            Read our docs
-          </a>
+export default function HomePage() {
+  const [currentTab, setCurrentTab] = useState<'home' | 'documents'>('home');
+  const [file, setFile] = useState<File | null>(null);
+  const [uploading, setUploading] = useState(false);
+  const [response, setResponse] = useState<any>(null);
+  
+  // Search state
+  const [searchQuery, setSearchQuery] = useState('');
+  const [searching, setSearching] = useState(false);
+  const [searchResponse, setSearchResponse] = useState<any>(null);
+  const [showTyping, setShowTyping] = useState(false);
+  const [typingCompleted, setTypingCompleted] = useState(false);
+
+  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    if (e.target.files && e.target.files[0]) {
+      setFile(e.target.files[0]);
+      setResponse(null);
+    }
+  };
+
+  const handleUpload = async () => {
+    if (!file) return;
+
+    setUploading(true);
+    setResponse(null);
+    
+    const formData = new FormData();
+    formData.append('file', file);
+
+    try {
+      const res = await fetch('/api/upload', {
+        method: 'POST',
+        body: formData,
+      });
+
+      const result = await res.json();
+      setResponse(result);
+    } catch (error) {
+      setResponse({ error: error instanceof Error ? error.message : 'Upload failed' });
+    } finally {
+      setUploading(false);
+    }
+  };
+
+  const handleSearch = async () => {
+    if (!searchQuery.trim()) return;
+
+    setSearching(true);
+    setSearchResponse(null);
+    setShowTyping(false);
+    setTypingCompleted(false);
+
+    try {
+      const res = await fetch('/api/search', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ query: searchQuery.trim() }),
+      });
+
+      const result = await res.json();
+      setSearchResponse(result);
+      
+      // Start typing effect for successful responses
+      if (result.success && result.response) {
+        setShowTyping(true);
+      }
+    } catch (error) {
+      setSearchResponse({ error: error instanceof Error ? error.message : 'Search failed' });
+    } finally {
+      setSearching(false);
+    }
+  };
+
+  const handleTypingComplete = () => {
+    setTypingCompleted(true);
+  };
+
+  const handleSearchKeyPress = (e: React.KeyboardEvent) => {
+    if (e.key === 'Enter') {
+      handleSearch();
+    }
+  };
+
+  const renderHomeTab = () => (
+    <div className="max-w-6xl mx-auto">
+      <h1 className="text-3xl font-bold text-gray-900 mb-8 text-center">
+        Document Upload & Search
+      </h1>
+        
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+          {/* Upload Section */}
+          <div className="bg-white rounded-lg shadow-md p-6">
+            <h2 className="text-xl font-semibold text-gray-900 mb-4">Upload Document</h2>
+            
+            <div className="mb-4">
+              <label htmlFor="file-input" className="block text-sm font-medium text-gray-700 mb-2">
+                Select File
+              </label>
+              <input
+                id="file-input"
+                type="file"
+                onChange={handleFileChange}
+                accept=".pdf,.doc,.docx,.txt,.png,.jpg,.jpeg"
+                className="block w-full text-sm text-gray-500 file:mr-4 file:py-2 file:px-4 file:rounded-md file:border-0 file:text-sm file:font-medium file:bg-blue-50 file:text-blue-700 hover:file:bg-blue-100"
+              />
+            </div>
+
+            {file && (
+              <div className="mb-4 p-3 bg-gray-50 rounded-md">
+                <p className="text-sm text-gray-700">
+                  <span className="font-medium">Selected:</span> {file.name}
+                </p>
+              </div>
+            )}
+
+            <button
+              onClick={handleUpload}
+              disabled={!file || uploading}
+              className="w-full bg-blue-600 text-white py-2 px-4 rounded-md font-medium hover:bg-blue-700 disabled:bg-gray-300 disabled:cursor-not-allowed"
+            >
+              {uploading ? 'Processing...' : 'Upload & Process'}
+            </button>
+
+            {/* Loading Animation */}
+            {uploading && (
+              <div className="mt-4">
+                <div className="flex items-center space-x-3 p-4 bg-blue-50 rounded-md border border-blue-200">
+                  <div className="flex space-x-1">
+                    <div className="w-2 h-2 bg-blue-500 rounded-full animate-bounce"></div>
+                    <div className="w-2 h-2 bg-blue-500 rounded-full animate-bounce" style={{animationDelay: '0.1s'}}></div>
+                    <div className="w-2 h-2 bg-blue-500 rounded-full animate-bounce" style={{animationDelay: '0.2s'}}></div>
+                  </div>
+                  <div className="text-blue-700">
+                    <div className="font-medium">Processing your document...</div>
+                    <div className="text-sm text-blue-600">This may take a few moments while we extract and index the content</div>
+                  </div>
+                </div>
+              </div>
+            )}
+          </div>
+
+          {/* Search Section */}
+          <div className="bg-white rounded-lg shadow-md p-6">
+            <h2 className="text-xl font-semibold text-gray-900 mb-4">Search Documents</h2>
+            
+            <div className="mb-4">
+              <label htmlFor="search-input" className="block text-sm font-medium text-gray-700 mb-2">
+                Ask a question about your documents
+              </label>
+              <div className="flex gap-2">
+                <input
+                  id="search-input"
+                  type="text"
+                  value={searchQuery}
+                  onChange={(e) => setSearchQuery(e.target.value)}
+                  onKeyPress={handleSearchKeyPress}
+                  placeholder="e.g., What are the main topics discussed?"
+                  className="flex-1 px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-green-500 text-black"
+                />
+                <button
+                  onClick={handleSearch}
+                  disabled={!searchQuery.trim() || searching}
+                  className="bg-green-600 text-white px-4 py-2 rounded-md font-medium hover:bg-green-700 disabled:bg-gray-300 disabled:cursor-not-allowed flex items-center space-x-2"
+                >
+                  {searching ? (
+                    <>
+                      <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
+                      <span>Searching...</span>
+                    </>
+                  ) : (
+                    <span>Search</span>
+                  )}
+                </button>
+              </div>
+            </div>
+
+            {/* Loading Animation */}
+            {searching && (
+              <div className="mt-4">
+                <div className="flex items-center space-x-2 p-4 bg-blue-50 rounded-md">
+                  <div className="flex space-x-1">
+                    <div className="w-2 h-2 bg-blue-500 rounded-full animate-bounce"></div>
+                    <div className="w-2 h-2 bg-blue-500 rounded-full animate-bounce" style={{animationDelay: '0.1s'}}></div>
+                    <div className="w-2 h-2 bg-blue-500 rounded-full animate-bounce" style={{animationDelay: '0.2s'}}></div>
+                  </div>
+                  <span className="text-blue-700 text-sm">Searching your documents...</span>
+                </div>
+              </div>
+            )}
+
+            {/* Search Results */}
+            {searchResponse && !searching && (
+              <div className="mt-4">
+                <h3 className="text-lg font-medium text-gray-900 mb-2">Search Result</h3>
+                <div className="bg-gray-50 p-4 rounded-md">
+                  {searchResponse.success ? (
+                    <div>
+                      <p className="text-sm text-gray-600 mb-2">
+                        <span className="font-medium">Query:</span> {searchResponse.query}
+                      </p>
+                      <div className="prose prose-sm max-w-none text-black">
+                        {showTyping && !typingCompleted ? (
+                          <TypingText 
+                            text={searchResponse.response}
+                            speed={10}
+                            className="whitespace-pre-wrap"
+                            onComplete={handleTypingComplete}
+                          />
+                        ) : (
+                          <div className="whitespace-pre-wrap">{searchResponse.response}</div>
+                        )}
+                      </div>
+                    </div>
+                  ) : (
+                    <p className="text-red-600 text-sm">
+                      Error: {searchResponse.error}
+                    </p>
+                  )}
+                </div>
+              </div>
+            )}
+          </div>
         </div>
-      </main>
-      <footer className="row-start-3 flex gap-[24px] flex-wrap items-center justify-center">
-        <a
-          className="flex items-center gap-2 hover:underline hover:underline-offset-4"
-          href="https://nextjs.org/learn?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <Image
-            aria-hidden
-            src="/file.svg"
-            alt="File icon"
-            width={16}
-            height={16}
-          />
-          Learn
-        </a>
-        <a
-          className="flex items-center gap-2 hover:underline hover:underline-offset-4"
-          href="https://vercel.com/templates?framework=next.js&utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <Image
-            aria-hidden
-            src="/window.svg"
-            alt="Window icon"
-            width={16}
-            height={16}
-          />
-          Examples
-        </a>
-        <a
-          className="flex items-center gap-2 hover:underline hover:underline-offset-4"
-          href="https://nextjs.org?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <Image
-            aria-hidden
-            src="/globe.svg"
-            alt="Globe icon"
-            width={16}
-            height={16}
-          />
-          Go to nextjs.org →
-        </a>
-      </footer>
+
+        {/* Upload Response */}
+        {response && !uploading && (
+          <div className="mt-6 bg-white rounded-lg shadow-md p-6">
+            <h2 className="text-xl font-semibold text-gray-900 mb-4">
+              {response.duplicate ? 'Duplicate File Detected' : 
+               response.error ? 'Upload Error' : 'Upload Complete'}
+            </h2>
+            
+            {response.error ? (
+              <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded">
+                {response.error}
+              </div>
+            ) : response.duplicate ? (
+              <div className="bg-yellow-50 border border-yellow-200 text-yellow-800 px-4 py-3 rounded">
+                <div className="font-medium">File "{response.originalName}" already exists</div>
+                <div className="text-sm mt-1">
+                  Previously uploaded: {response.existingDocument ? 
+                    new Date(response.existingDocument.uploadedAt).toLocaleString() : 'Unknown'}
+                </div>
+              </div>
+            ) : (
+              <div className="bg-green-50 border border-green-200 text-green-800 px-4 py-3 rounded">
+                <div className="font-medium">Successfully processed "{response.originalName}"</div>
+                {response.extraction && (
+                  <div className="text-sm mt-2 space-y-1">
+                    <div>📊 Tables: {response.extraction.tables?.length || 0}</div>
+                    <div>📝 Text: {response.extraction.rawText?.length || 0} characters</div>
+                    <div>🔍 Added to search index</div>
+                  </div>
+                )}
+              </div>
+            )}
+            
+            <details className="mt-4">
+              <summary className="cursor-pointer text-sm text-gray-600 hover:text-gray-800">
+                Show raw response
+              </summary>
+              <pre className="bg-gray-100 p-4 rounded-md overflow-auto text-sm text-black mt-2">
+                {JSON.stringify(response, null, 2)}
+              </pre>
+            </details>
+          </div>
+        )}
+    </div>
+  );
+
+  return (
+    <div className="flex h-screen bg-gray-50">
+      <Sidebar currentTab={currentTab} onTabChange={setCurrentTab} />
+      
+      <div className="flex-1 overflow-auto">
+        <div className="p-8">
+          {currentTab === 'home' ? renderHomeTab() : <DocumentsTab />}
+        </div>
+      </div>
     </div>
   );
 }

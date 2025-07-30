@@ -39,3 +39,11 @@ yarn-error.log*
 # typescript
 *.tsbuildinfo
 next-env.d.ts
+
+# database
+documents.db
+
+/src/generated/prisma
+
+# backend models (downloaded automatically)
+/backend/models/
