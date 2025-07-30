@@ -145,6 +145,9 @@ export function getFileType(filename: string, mimeType: string): 'image' | 'pdf'
 }
 
 async function processTextFile(fileBuffer: Buffer, filename: string): Promise<{
+  documentType: string;
+  extractedFields: Record<string, any>;
+  confidence: number;
   tables: Array<{ row: string; column: string; value: string }>;
   rawText: string;
   rawResponse: any;
@@ -172,6 +175,9 @@ async function processTextFile(fileBuffer: Buffer, filename: string): Promise<{
   }
   
   return {
+    documentType: 'other', // Default for text files
+    extractedFields: {},
+    confidence: 0.5,
     tables,
     rawText: textContent,
     rawResponse: { type: 'direct-text-processing' }
@@ -184,6 +190,9 @@ export async function extractTablesAndText(
   mimeType: string,
   customPrompt?: string
 ): Promise<{
+  documentType: string;
+  extractedFields: Record<string, any>;
+  confidence: number;
   tables: Array<{ row: string; column: string; value: string }>;
   rawText: string;
   rawResponse: any;
@@ -206,7 +215,24 @@ export async function extractTablesAndText(
   // Prepare for vision API
   const prompt =
     customPrompt?.trim() ||
-    `You are an expert data extractor. Parse the provided document image and return a strict JSON response with two keys:\n\n1. "tables" – an array that captures EVERY data cell from ALL tables in the document **excluding header rows**. Represent each cell as an object {"row","column","value"}.\n   • "row"  – the EXACT text of the FIRST cell in that row (the row header/value).\n   • "column" – the EXACT text of the column header (top-most header cell) for that column.\n   • "value" – the cell text itself.\n   Do NOT use numeric indices or positional terms. Do NOT include header rows themselves (they become the column names).\n\n   Example table snippet (header + 1 row):\n   Pieces | Pallets | Description\n   72     | 9       | SAP Forms\n\n   Should yield in \"tables\":\n   [\n     {"row":"72","column":"Pieces","value":"72"},\n     {"row":"72","column":"Pallets","value":"9"},\n     {"row":"72","column":"Description","value":"SAP Forms"}\n   ]\n\n2. "rawText" – plain text of all NON-tabular content in reading order.\n\nReturn ONLY a valid JSON object in this format (no markdown, comments, or additional keys).`;
+    `You are an expert document classifier and data extractor. Analyze the provided document image and return a strict JSON response with these keys:
+
+1. "documentType" – Classify the document as one of: "invoice", "purchase_order", "receipt", "contract", "report", "form", "letter", "other"
+
+2. "extractedFields" – Key structured data based on document type:
+   • For invoices: {"invoiceNumber", "date", "dueDate", "vendor", "total", "tax", "subtotal", "billTo", "items"}
+   • For purchase orders: {"poNumber", "date", "vendor", "buyer", "total", "items", "deliveryDate", "terms"}
+   • For receipts: {"store", "date", "total", "tax", "paymentMethod", "items"}
+   • For contracts: {"parties", "date", "title", "value", "terms", "duration"}
+   • For other types: extract the most relevant fields found
+
+3. "tables" – Array capturing table data as objects {"row","column","value"} (excluding headers)
+
+4. "rawText" – Plain text of all non-tabular content
+
+5. "confidence" – Your confidence in the classification (0-1)
+
+Return ONLY a valid JSON object. Extract actual values when present, use null for missing fields.`;
 
   let imageBuffers: Buffer[] = [];
   
@@ -220,6 +246,9 @@ export async function extractTablesAndText(
   const allTables: Array<{ row: string; column: string; value: string }> = [];
   let allRawText = '';
   const allResponses: any[] = [];
+  let documentType = 'other';
+  let extractedFields = {};
+  let confidence = 0;
   
   for (let i = 0; i < imageBuffers.length; i++) {
     const imageBuffer = imageBuffers[i];
@@ -256,6 +285,16 @@ export async function extractTablesAndText(
       const parsed = JSON.parse(content);
       
       // Combine results
+      if (parsed.documentType) {
+        documentType = parsed.documentType;
+      }
+      if (parsed.extractedFields) {
+        extractedFields = parsed.extractedFields;
+      }
+      if (parsed.confidence) {
+        confidence = parsed.confidence;
+      }
+
       if (parsed.tables && Array.isArray(parsed.tables)) {
         parsed.tables.forEach((table: any) => {
           allTables.push({
@@ -295,11 +334,17 @@ export async function extractTablesAndText(
   });
   
   return { 
+    documentType,
+    extractedFields,
+    confidence,
     tables: allTables, 
     rawText: allRawText, 
     rawResponse: { 
       pages: allResponses.length,
-      responses: allResponses 
+      responses: allResponses,
+      documentType,
+      extractedFields,
+      confidence
     } 
   };
 }

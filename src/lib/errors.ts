@@ -87,7 +87,7 @@ export class FileProcessingError extends AppError {
 
 // Error handling utilities
 export function handleZodError(error: ZodError): ValidationError {
-  const details = error.errors?.map(err => ({
+  const details = error.issues?.map((err: any) => ({
     field: err.path.join('.'),
     message: err.message,
     code: err.code

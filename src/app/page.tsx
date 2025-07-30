@@ -245,7 +245,7 @@ export default function HomePage() {
               </div>
             ) : response.duplicate ? (
               <div className="bg-yellow-50 border border-yellow-200 text-yellow-800 px-4 py-3 rounded">
-                <div className="font-medium">File "{response.originalName}" already exists</div>
+                <div className="font-medium">File &quot;{response.originalName}&quot; already exists</div>
                 <div className="text-sm mt-1">
                   Previously uploaded: {response.existingDocument ? 
                     new Date(response.existingDocument.uploadedAt).toLocaleString() : 'Unknown'}
@@ -253,7 +253,7 @@ export default function HomePage() {
               </div>
             ) : (
               <div className="bg-green-50 border border-green-200 text-green-800 px-4 py-3 rounded">
-                <div className="font-medium">Successfully processed "{response.originalName}"</div>
+                <div className="font-medium">Successfully processed &quot;{response.originalName}&quot;</div>
                 {response.extraction && (
                   <div className="text-sm mt-2 space-y-1">
                     <div>📊 Tables: {response.extraction.tables?.length || 0}</div>

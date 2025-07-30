@@ -38,7 +38,7 @@ export const vectorStoreCreateSchema = z.object({
       chunk_overlap_tokens: z.number().int().nonnegative().max(1000)
     })
   }).optional(),
-  metadata: z.record(z.any()).optional()
+  metadata: z.record(z.string(), z.any()).optional()
 });
 
 export type VectorStoreCreateRequest = z.infer<typeof vectorStoreCreateSchema>;
