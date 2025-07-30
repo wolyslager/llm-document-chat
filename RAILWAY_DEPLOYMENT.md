@@ -26,6 +26,8 @@ In your Railway dashboard, add these environment variables:
 ```bash
 DATABASE_URL=postgresql://neondb_owner:npg_s6aqnSrYRg3w@ep-icy-term-ae8ss3w8-pooler.c-2.us-east-2.aws.neon.tech/neondb?sslmode=require&channel_binding=require
 OPENAI_API_KEY=sk-proj-your-openai-api-key-here
+UPSTASH_REDIS_REST_URL=https://evolved-orca-62396.upstash.io
+UPSTASH_REDIS_REST_TOKEN=AfO8AAIjcDE0MGUxYjdkNzNiYTA0ZTZjOGM2ZjBmZGZkNGYyMzAwMXAxMA
 LOG_LEVEL=info
 NODE_ENV=production
 DEBUG=false
