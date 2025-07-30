@@ -1,7 +1,7 @@
 FROM node:20-alpine
 
 # Install Poppler utilities (including pdftocairo)
-RUN apk add --no-cache poppler-utils
+RUN apk add --no-cache poppler-utils python3 make g++ build-base
 
 # Declare build arguments for environment variables needed at build time
 ARG OPENAI_API_KEY
