@@ -59,7 +59,8 @@ export default function ProgressTracker({ progressId, onComplete, onError }: Pro
       timestamp: new Date().toISOString()
     });
 
-    const eventSource = new EventSource(`/api/progress/${progressId}`);
+    const backendUrl = process.env.NEXT_PUBLIC_BACKEND_URL || '';
+    const eventSource = new EventSource(`${backendUrl}/api/progress/${progressId}`);
 
     eventSource.onopen = () => {
       setIsConnected(true);

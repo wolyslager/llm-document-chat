@@ -34,7 +34,8 @@ export default function DocumentsTab() {
     if (!confirmDelete) return;
 
     try {
-      const res = await fetch(`/api/documents/${id}`, { method: 'DELETE' });
+      const backendUrl = process.env.NEXT_PUBLIC_BACKEND_URL || '';
+      const res = await fetch(`${backendUrl}/api/documents/${id}`, { method: 'DELETE' });
       if (res.ok) {
         setDocuments(prev => prev.filter(doc => doc.id !== id));
       } else {
@@ -49,7 +50,8 @@ export default function DocumentsTab() {
   const fetchDocuments = async () => {
     try {
       setLoading(true);
-      const response = await fetch('/api/documents');
+      const backendUrl = process.env.NEXT_PUBLIC_BACKEND_URL || '';
+      const response = await fetch(`${backendUrl}/api/documents`);
       const data = await response.json();
       
       if (data.success) {

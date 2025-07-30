@@ -35,7 +35,8 @@ export default function HomePage() {
     formData.append('file', file);
 
     try {
-      const res = await fetch('/api/upload', {
+      const backendUrl = process.env.NEXT_PUBLIC_BACKEND_URL || '';
+      const res = await fetch(`${backendUrl}/api/upload`, {
         method: 'POST',
         body: formData,
       });
@@ -58,7 +59,8 @@ export default function HomePage() {
     setTypingCompleted(false);
 
     try {
-      const res = await fetch('/api/search', {
+      const backendUrl = process.env.NEXT_PUBLIC_BACKEND_URL || '';
+      const res = await fetch(`${backendUrl}/api/search`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
